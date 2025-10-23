@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hill-hill-backend
+  labels:
+    app: hill-hill-backend
+    environment: dev
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hill-hill-backend
+  template:
+    metadata:
+      labels:
+        app: hill-hill-backend
+    spec:
+      # Spread pods across different nodes and AZs for HA
+      affinity:
+        podAntiAffinity:
+          # Prefer not to schedule on the same node
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - hill-hill-backend
+              topologyKey: kubernetes.io/hostname
+          # Strongly prefer different AZs
+          - weight: 50
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - hill-hill-backend
+              topologyKey: topology.kubernetes.io/zone
+      topologySpreadConstraints:
+      # Spread across availability zones
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: hill-hill-backend
+      # Spread across nodes
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: hill-hill-backend
+      containers:
+      - name: flask-app
+        image: 714364484263.dkr.ecr.us-east-1.amazonaws.com/hill-hill-game-dev:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+          name: http
+        env:
+        - name: FLASK_ENV
+          value: "production"
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hill-hill-backend-secrets
+              key: jwt-secret-key
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /app
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /app
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hill-hill-backend-service
+  labels:
+    app: hill-hill-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: hill-hill-backend
+  ports:
+  - port: 80
+    targetPort: 5000
+    protocol: TCP
+    name: http
+
+

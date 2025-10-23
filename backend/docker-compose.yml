@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  flask-app:
+    build: .
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./src:/app  # Volume mapping for live code changes
+    environment:
+      - FLASK_ENV=development
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-secret-key-change-in-production}
+    env_file:
+      - .env
+    command: flask run --host=0.0.0.0 --port=5000 --reload
+
