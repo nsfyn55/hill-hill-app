@@ -8,6 +8,11 @@ metadata:
     alb.ingress.kubernetes.io/group.name: shared-web-alb
     alb.ingress.kubernetes.io/group.order: '0'
     
+    # SSL/HTTPS Configuration
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:714364484263:certificate/ee4898eb-de57-4a7d-b26a-21527dab3afa
+    
     # Health Check Settings
     alb.ingress.kubernetes.io/healthcheck-path: /app
     alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
@@ -20,7 +25,8 @@ metadata:
 spec:
   ingressClassName: alb
   rules:
-  - http:
+  - host: app.classicartcarey.com
+    http:
       paths:
       # Backend API routes
       - path: /app
